@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wehming.cloud</title>
+<meta name="description" content="wehming.cloud">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23111'/><circle cx='50' cy='50' r='16' fill='%237cf'/></svg>">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #07080b;
+    color: #e8eaf0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: grid; place-items: center;
+    overflow: hidden;
+  }
+
+  /* soft moving glow */
+  .glow {
+    position: fixed; width: 70vmax; height: 70vmax; border-radius: 50%;
+    filter: blur(90px); opacity: .45; z-index: 0;
+    background: radial-gradient(circle at 30% 30%, #4f7cff, transparent 60%),
+                radial-gradient(circle at 70% 60%, #22d3ee, transparent 55%),
+                radial-gradient(circle at 50% 80%, #a855f7, transparent 55%);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    0%   { transform: translate(-12%, -8%) rotate(0deg) scale(1); }
+    100% { transform: translate(12%, 8%) rotate(40deg) scale(1.15); }
+  }
+
+  /* fine grain */
+  .grain {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .08;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  main { position: relative; z-index: 2; text-align: center; padding: 2rem; }
+
+  h1 {
+    font-size: clamp(2.6rem, 9vw, 6.5rem);
+    font-weight: 800; letter-spacing: -.04em; line-height: 1;
+  }
+  h1 .name {
+    background: linear-gradient(120deg, #fff 20%, #9fb4ff 50%, #fff 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine 6s linear infinite;
+  }
+  h1 .tld { color: rgba(232,234,240,.35); }
+  @keyframes shine { to { background-position: -200% center; } }
+
+  .status {
+    margin-top: 1.8rem;
+    display: inline-flex; align-items: center; gap: .6rem;
+    padding: .55rem 1.1rem; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    backdrop-filter: blur(8px);
+    font-size: .9rem; color: rgba(232,234,240,.75);
+  }
+  .dot { width: .55rem; height: .55rem; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,.6); animation: ping 2s infinite; }
+  @keyframes ping { 70% { box-shadow: 0 0 0 .6rem rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+
+  footer { position: fixed; bottom: 1.4rem; z-index: 2; font-size: .75rem; color: rgba(232,234,240,.35); letter-spacing: .08em; }
+
+
+  /* cursor spotlight */
+  .spot { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(500px circle at var(--x,50%) var(--y,50%), rgba(140,170,255,.10), transparent 60%); }
+
+  h1 { cursor: default; user-select: none; }
+  .hint { margin-top: 1.1rem; font-size: .75rem; color: rgba(232,234,240,.28); letter-spacing: .06em; }
+  .hint kbd { font-family: inherit; border: 1px solid rgba(255,255,255,.15); border-radius: 4px; padding: 0 .35em; }
+
+  /* toast */
+  .toast {
+    position: fixed; top: 1.4rem; left: 50%; transform: translate(-50%, -150%);
+    z-index: 10; display: flex; align-items: center; gap: .8rem;
+    padding: .7rem 1.1rem; border-radius: 12px;
+    background: rgba(20,22,30,.85); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(10px);
+    font-size: .9rem; transition: transform .45s cubic-bezier(.2,1.4,.4,1);
+  }
+  .toast.show { transform: translate(-50%, 0); }
+  .toast b { display: block; font-size: .7rem; letter-spacing: .12em; color: #fbbf24; text-transform: uppercase; }
+  .toast .ico { font-size: 1.5rem; }
+
+  /* falling blocks */
+  .block { position: fixed; top: -40px; z-index: 3; width: 22px; height: 22px; pointer-events: none;
+    box-shadow: inset -4px -4px 0 rgba(0,0,0,.25), inset 4px 4px 0 rgba(255,255,255,.15);
+    animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(var(--r)); } }
+
+  body.party .glow { animation-duration: 2s; opacity: .75; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="spot" aria-hidden="true"></div>
+  <div class="toast" id="toast"><span class="ico" id="ti"></span><div><b id="tt"></b><span id="tm"></span></div></div>
+
+  <main>
+    <h1><span class="name">wehming</span><span class="tld">.cloud</span></h1>
+    <div class="status" id="status"><span class="dot"></span><span id="st">Homelab online</span></div>
+    <div class="hint">psst … es gibt hier Geheimnisse</div>
+  </main>
+
+  <footer>© <span id="y"></span> wehming.cloud</footer>
+  <script>
+document.getElementById('y').textContent = new Date().getFullYear();
+
+/* spotlight follows cursor */
+addEventListener('pointermove', e => {
+  document.body.style.setProperty('--x', e.clientX + 'px');
+  document.body.style.setProperty('--y', e.clientY + 'px');
+});
+
+/* decode effect on hover */
+const nameEl = document.querySelector('h1 .name'), orig = nameEl.textContent, chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@';
+let busy = false;
+document.querySelector('h1').addEventListener('mouseenter', () => {
+  if (busy) return; busy = true; let i = 0;
+  const t = setInterval(() => {
+    nameEl.textContent = orig.split('').map((c, k) => k < i ? c : chars[Math.random() * chars.length | 0]).join('');
+    if ((i += 1 / 3) > orig.length) { clearInterval(t); nameEl.textContent = orig; busy = false; }
+  }, 30);
+});
+
+/* status: live uptime ticker */
+const st = document.getElementById('st'), start = Date.now();
+const msgs = ['Homelab online', 'Proxmox läuft', 'Kaffee: ausreichend', 'Uptime '];
+let mi = 0;
+setInterval(() => {
+  mi = (mi + 1) % msgs.length;
+  st.textContent = msgs[mi] === 'Uptime ' ? 'Uptime ' + Math.floor((Date.now() - start) / 1000) + 's (diese Session)' : msgs[mi];
+}, 3500);
+
+/* toast helper */
+let tTimer;
+function toast(ico, title, msg) {
+  document.getElementById('ti').textContent = ico;
+  document.getElementById('tt').textContent = title;
+  document.getElementById('tm').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show'); clearTimeout(tTimer);
+  tTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+
+/* Easter egg 1: Konami code → block rain */
+const konami = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let kpos = 0, typed = '';
+addEventListener('keydown', e => {
+  kpos = (e.key === konami[kpos] || e.key.toLowerCase() === konami[kpos]) ? kpos + 1 : (e.key === konami[0] ? 1 : 0);
+  if (kpos === konami.length) { kpos = 0; blockRain(); }
+
+  /* Easter egg 2: type a command */
+  if (e.key.length === 1) typed = (typed + e.key.toLowerCase()).slice(-12);
+  if (typed.endsWith('sudo')) { typed = ''; toast('🔒', 'Zugriff verweigert', 'Nice try – User „claude“ hat nur Leserechte.'); }
+  if (typed.endsWith('ping')) { typed = ''; toast('🏓', 'pong', '64 bytes from wehming.cloud: time=0.42 ms'); }
+  if (typed.endsWith('party')) { typed = ''; document.body.classList.toggle('party'); toast('🪩', 'Party-Modus', document.body.classList.contains('party') ? 'an' : 'aus'); }
+});
+
+function blockRain() {
+  toast('🏆', 'Achievement unlocked', 'Konami-Code gefunden – Respekt.');
+  const colors = ['#5b8c32','#866043','#7f7f7f','#3b6fd8','#d9c27a','#4ec9e6'];
+  for (let i = 0; i < 70; i++) {
+    const b = document.createElement('div');
+    b.className = 'block';
+    b.style.left = Math.random() * 100 + 'vw';
+    b.style.background = colors[Math.random() * colors.length | 0];
+    b.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+    b.style.animationDuration = 1.8 + Math.random() * 2 + 's';
+    b.style.animationDelay = Math.random() * 1.2 + 's';
+    document.body.appendChild(b);
+    b.addEventListener('animationend', () => b.remove());
+  }
+}
+
+/* Easter egg 3: click the status pill 5x */
+let clicks = 0, cTimer;
+document.getElementById('status').addEventListener('click', () => {
+  clicks++; clearTimeout(cTimer); cTimer = setTimeout(() => clicks = 0, 1500);
+  if (clicks === 5) { clicks = 0; toast('🖥️', 'Admin-Modus', 'Tipps: Konami-Code · „sudo“ · „ping“ · „party“ tippen'); }
+});
+
+/* Easter egg 4: dev console */
+console.log('%c wehming.cloud ', 'background:#4f7cff;color:#fff;font-size:20px;font-weight:800;border-radius:6px;padding:4px 8px');
+console.log('Hallo Admin 👋  Schon den Konami-Code probiert? ↑↑↓↓←→←→BA');
+</script>
+</body>
+</html>
